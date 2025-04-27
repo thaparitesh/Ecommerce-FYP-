@@ -5,12 +5,12 @@ import { fetchAllVendors, fetchPendingVendors } from '@/store/admin/approveVendo
 import { getAllOrdersFromAllUsers, getAdminSalesReports } from '@/store/admin/order-slice';
 import { getAllUsers } from '@/store/auth-slice';
 import { addFeatureImage, deleteFeatureImage, getFeatureImage } from '@/store/common-slice';
-import { Trash2, Users, Package, PackageCheck, Image, ShoppingBag, TrendingUp, BarChart2 } from 'lucide-react';
-import React, { useEffect, useState } from 'react'
+import { Trash2, Users, Package, PackageCheck, Image, ShoppingBag, TrendingUp, Clock, Truck } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
@@ -20,10 +20,9 @@ function AdminDashboard() {
   const [uploadedImageUrl, setUploadedImageUrl] = useState('');
   const [imageLoadingState, setImageLoadingState] = useState(false);
   const dispatch = useDispatch();
-  
-  const { featureImageList, isLoading } = useSelector(state => state.commonFeature);
+  const { featureImageList, isLoading: featureLoading } = useSelector(state => state.commonFeature);
   const { user, allUserList } = useSelector(state => state.auth);
-  const { orderList, salesReports } = useSelector(state => state.adminOrder);
+  const { orderList, salesReports, isLoading } = useSelector(state => state.adminOrder);
   const { vendors, pendingVendors } = useSelector(state => state.adminApproval);
 
   // Calculate dashboard metrics
@@ -33,15 +32,38 @@ function AdminDashboard() {
   const pendingOrders = orderList?.filter(order => order.orderStatus === 'pending').length || 0;
   const processingOrders = orderList?.filter(order => order.orderStatus === 'processing').length || 0;
   const deliveredOrders = orderList?.filter(order => order.orderStatus === 'delivered').length || 0;
-  
-  // Calculate total revenue
-  // const totalRevenue = salesReports?.summary?.totalSales || 
-  //   orderList?.reduce((sum, order) => {
-  //     if (order.paymentStatus === 'paid' && order.orderStatus === 'delivered') {
-  //       return sum + (order.totalAmount || 0);
-  //     }
-  //     return sum;
-  //   }, 0) || 0;
+
+  // Calculate recent sales (sum of periodSales)
+  const recentSales = salesReports?.periodSales?.reduce((sum, sale) => sum + sale.revenue, 0) || 0;
+
+  useEffect(() => {
+    dispatch(getAllOrdersFromAllUsers());
+    dispatch(getAdminSalesReports({
+      startDate: new Date(new Date().setDate(new Date().getDate() - 30)),
+      endDate: new Date(),
+      granularity: 'day',
+    }));
+    if (allUserList.length === 0) {
+      dispatch(getAllUsers());
+    }
+    dispatch(getFeatureImage());
+    dispatch(fetchPendingVendors());
+    dispatch(fetchAllVendors());
+  }, [dispatch, allUserList.length]);
+
+  // Get recent transactions
+  const recentTransactions = orderList
+    ? [...orderList]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5)
+    : [];
+
+  // Calculate order status counts from orderList
+  const orderStatusCounts = {
+    pending: pendingOrders,
+    processing: processingOrders,
+    delivered: deliveredOrders,
+  };
 
   function handleUploadImageFeature() {
     if (!uploadedImageUrl) {
@@ -84,72 +106,12 @@ function AdminDashboard() {
           toast.error('Error deleting image');
         });
     }
-  }  
-  
-  useEffect(() => {
-    if (allUserList.length === 0) {
-      dispatch(getAllUsers());
-    }
-  }, [dispatch, allUserList.length]);
-
-  useEffect(() => {
-    dispatch(getFeatureImage());
-  }, [dispatch]);
-
-  useEffect(() => {
-    dispatch(getAllOrdersFromAllUsers());
-    dispatch(getAdminSalesReports());
-  }, [dispatch]);
-
-  useEffect(() => {
-    dispatch(fetchPendingVendors());
-    dispatch(fetchAllVendors());
-  }, [dispatch]);
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalUsers}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Vendors</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{approvedVendor}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Vendors</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingVendors.length}</div>
-          </CardContent>
-        </Card>
-
-        {/* <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Rs {totalRevenue.toFixed(2)}</div>
-          </CardContent>
-        </Card> */}
-
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
@@ -157,41 +119,98 @@ function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalOrders}</div>
-            <p className="text-xs text-muted-foreground">All time orders</p>
+            <p className="text-xs text-muted-foreground">All orders</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Processing Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Processing</CardTitle>
+            <Truck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{processingOrders}</div>
+            <p className="text-xs text-muted-foreground">In progress</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingOrders}</div>
             <p className="text-xs text-muted-foreground">Awaiting processing</p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Delivered Orders</CardTitle>
-            <PackageCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{deliveredOrders}</div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Recent Transactions Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Transactions</CardTitle>
+          <CardDescription>Latest 5 orders</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8 text-gray-500">
+              Loading transactions...
+            </div>
+          ) : recentTransactions.length === 0 ? (
+            <div className="flex justify-center py-8 text-gray-500">
+              No recent transactions
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Payment</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentTransactions.map((order) => (
+                  <TableRow key={order.orderID || order.id}>
+                    <TableCell className="font-medium">
+                      #{(order.orderID || order.id || 'N/A').slice(0, 8)}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(order.orderDate).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        order.orderStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        order.orderStatus === 'processing' ? 'bg-blue-100 text-blue-800' :
+                        order.orderStatus === 'delivered' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {order.orderStatus}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {order.paymentStatus}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">Rs {order.totalAmount?.toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Sales Report Section */}
       {salesReports && (
@@ -201,10 +220,11 @@ function AdminDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Rs {salesReports.summary.totalSales.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">All time</p>
+                <div className="text-2xl font-bold">Rs {salesReports.summary?.totalSales.toFixed(2) || '0.00'}</div>
+                <p className="text-xs text-muted-foreground">Delivered orders</p>
               </CardContent>
             </Card>
 
@@ -214,8 +234,8 @@ function AdminDashboard() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">Rs {salesReports.summary.periodSales.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground">Last 30 days</p>
+                <div className="text-2xl font-bold">Rs {recentSales.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">Last 30 days (delivered)</p>
               </CardContent>
             </Card>
 
@@ -225,7 +245,7 @@ function AdminDashboard() {
                 <ShoppingBag className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{salesReports.topProducts.length}</div>
+                <div className="text-2xl font-bold">{salesReports.topProducts?.length || 0}</div>
                 <p className="text-xs text-muted-foreground">Best sellers</p>
               </CardContent>
             </Card>
@@ -237,13 +257,13 @@ function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Revenue Trends</CardTitle>
-                <CardDescription>Daily revenue for last 30 days</CardDescription>
+                <CardDescription>Daily revenue for last 30 days (delivered orders)</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesReports.periodSales}>
+                  <BarChart data={salesReports.periodSales || []}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
+                    <XAxis dataKey="period" />
                     <YAxis />
                     <Tooltip 
                       formatter={(value) => [`Rs ${value.toFixed(2)}`, 'Revenue']}
@@ -269,9 +289,9 @@ function AdminDashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={Object.entries(salesReports.orderStatusCounts).map(([name, value]) => ({
+                      data={Object.entries(orderStatusCounts).map(([name, value]) => ({
                         name,
-                        value
+                        value,
                       }))}
                       cx="50%"
                       cy="50%"
@@ -281,12 +301,11 @@ function AdminDashboard() {
                       dataKey="value"
                       label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
-                      {Object.keys(salesReports.orderStatusCounts).map((entry, index) => (
+                      {Object.keys(orderStatusCounts).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(value) => [`${value} orders`]} />
-                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -300,56 +319,38 @@ function AdminDashboard() {
               <CardDescription>Most popular items across all vendors</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Vendor</TableHead>
-                    <TableHead>Quantity Sold</TableHead>
-                    <TableHead className="text-right">Revenue</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {salesReports.topProducts.map((product) => (
-                    <TableRow key={product.productID}>
-                      <TableCell className="font-medium">{product.title}</TableCell>
-                      <TableCell>{product.vendorName}</TableCell>
-                      <TableCell>{product.totalQuantity}</TableCell>
-                      <TableCell className="text-right">Rs {product.totalRevenue.toFixed(2)}</TableCell>
+              {isLoading ? (
+                <div className="flex justify-center py-8 text-gray-500">
+                  Loading products...
+                </div>
+              ) : !salesReports.topProducts || salesReports.topProducts.length === 0 ? (
+                <div className="flex justify-center py-8 text-gray-500">
+                  No top products available
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Vendor</TableHead>
+                      <TableHead>Quantity Sold</TableHead>
+                      <TableHead className="text-right">Revenue</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {salesReports.topProducts.map((product) => (
+                      <TableRow key={product.productID}>
+                        <TableCell className="font-medium">{product.title}</TableCell>
+                        <TableCell>{product.vendorName}</TableCell>
+                        <TableCell>{product.totalQuantity}</TableCell>
+                        <TableCell className="text-right">Rs {product.totalRevenue.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
-
-          {/* Top Vendors Table */}
-          {/* <Card>
-            <CardHeader>
-              <CardTitle>Top Performing Vendors</CardTitle>
-              <CardDescription>Vendors by sales volume</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Vendor</TableHead>
-                    <TableHead>Total Orders</TableHead>
-                    <TableHead className="text-right">Total Revenue</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {salesReports.topVendors.map((vendor) => (
-                    <TableRow key={vendor.vendorID}>
-                      <TableCell className="font-medium">{vendor.businessName}</TableCell>
-                      <TableCell>{vendor.orderCount}</TableCell>
-                      <TableCell className="text-right">Rs {vendor.totalRevenue.toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card> */}
         </>
       )}
 
@@ -366,14 +367,13 @@ function AdminDashboard() {
           <CardContent>
             <div className="space-y-4">
               <ProductImageUpload
-                imageFile={imageFile} 
-                setImageFile={setImageFile} 
-                uploadedImageUrl={uploadedImageUrl} 
+                imageFile={imageFile}
+                setImageFile={setImageFile}
+                uploadedImageUrl={uploadedImageUrl}
                 setUploadedImageUrl={setUploadedImageUrl}
                 setImageLoadingState={setImageLoadingState}
                 imageLoadingState={imageLoadingState}
               />
-
               <Button
                 onClick={handleUploadImageFeature}
                 disabled={!uploadedImageUrl || imageLoadingState}
@@ -394,7 +394,7 @@ function AdminDashboard() {
             <CardDescription>{featureImageList?.length || 0} images featured</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {featureLoading ? (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
               </div>
@@ -433,22 +433,6 @@ function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Vendor Approvals Card */}
-      {/* <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Vendor Approvals</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{pendingVendors.length}</div>
-          <p className="text-xs text-muted-foreground">
-            <Link to="/admin/vendors" className="text-blue-600 hover:underline">
-              Manage vendors
-            </Link>
-          </p>
-        </CardContent>
-      </Card> */}
     </div>
   );
 }

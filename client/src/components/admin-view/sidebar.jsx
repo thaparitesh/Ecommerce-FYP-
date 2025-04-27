@@ -1,4 +1,4 @@
-import { BadgePlus, ChartNoAxesCombined, CircleUserRound } from 'lucide-react'
+import { BadgePlus, ChartNoAxesCombined, CircleUserRound, HandCoins } from 'lucide-react'
 import React, { Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FileBox, LayoutDashboard, ShoppingBag } from "lucide-react"
@@ -11,6 +11,12 @@ export const adminSidebarMenuItems = [
     label: 'Dashboard',
     path: '/admin/dashboard',
     icons: <LayoutDashboard />
+  },
+  {
+    id: 'sales',
+    label: 'Sales',
+    path: '/admin/sales-report',
+    icons: <HandCoins />
   },
   {
     id: 'add-product',

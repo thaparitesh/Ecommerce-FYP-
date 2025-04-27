@@ -56,15 +56,22 @@ export const getAllOrdersFromAllUsers = createAsyncThunk(
   // );
 
   export const getAdminSalesReports = createAsyncThunk(
-    "order/getAdminSalesReports",
-    async () => {
-      const response = await axios.get(
-        `http://localhost:5000/api/admin/orders/get/sales-reports`
-      );
-      return response.data;
+    'order/getAdminSalesReports',
+    async ({ startDate, endDate, granularity }, { rejectWithValue }) => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/admin/orders/get/sales-reports', {
+          params: {
+            startDate: startDate ? startDate.toISOString() : undefined,
+            endDate: endDate ? endDate.toISOString() : undefined,
+            granularity,
+          },
+        });
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data || error.message);
+      }
     }
   );
-
   const adminOrderSlice = createSlice({
     name: "adminOrderSlice",
     initialState,

@@ -4,6 +4,9 @@ const Product = require("../../models/Product");
 const Address = require("../../models/Address");
 const User = require("../../models/User");
 const Vendor = require("../../models/Vendor");
+const { Op } = require('sequelize');
+const { format, startOfWeek, startOfMonth, startOfYear } = require('date-fns');
+
 
 
 const getAllOrdersFromAllUsersForVendor = async (req, res) => {
@@ -249,114 +252,133 @@ const updateOrderStatus = async(req, res) => {
   }
 }
 
+
+
+
 const getSalesReports = async (req, res) => {
   try {
     const { vendorID } = req.params;
-    
-    // Get orders for this vendor
+    const { startDate, endDate, granularity = 'day' } = req.query;
+
+    // Default to last 30 days
+    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
+    const end = endDate ? new Date(endDate) : new Date();
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date format',
+      });
+    }
+
+    if (start > end) {
+      return res.status(400).json({
+        success: false,
+        message: 'Start date must be before end date',
+      });
+    }
+
+    // Validate granularity
+    const validGranularities = ['day', 'week', 'month', 'year'];
+    if (!validGranularities.includes(granularity)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid granularity. Use day, week, month, or year.',
+      });
+    }
+
+    // Fetch delivered orders
     const orders = await Order.findAll({
-      include: [{
-        model: OrderItem,
-        as: 'items',
-        where: { vendorID },
-        required: true
-      }],
+      include: [
+        {
+          model: OrderItem,
+          as: 'items',
+          where: {
+            vendorID,
+            orderDetailStatus: 'delivered',
+          },
+          required: true,
+        },
+      ],
       where: {
-        paymentStatus: 'paid'
-      }
+        paymentStatus: 'paid',
+        orderDate: {
+          [Op.between]: [start, end],
+        },
+      },
     });
 
-    if (!orders.length) {
+    // Filter orders where all items are delivered
+    const deliveredOrders = orders.filter(order =>
+      order.items.every(item => item.orderDetailStatus === 'delivered')
+    );
+
+    if (!deliveredOrders.length) {
       return res.status(404).json({
         success: false,
-        message: `No orders found for vendor ${vendorID}`,
+        message: `No delivered orders found for vendor ${vendorID}`,
       });
     }
 
     // Calculate total sales
-    const totalSales = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const totalSales = deliveredOrders.reduce((sum, order) => sum + order.totalAmount, 0);
 
-    // Last 30 days sales
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const recentSales = orders
-      .filter(order => new Date(order.orderDate) >= thirtyDaysAgo)
-      .reduce((sum, order) => sum + order.totalAmount, 0);
-
-    // Group by date for last 30 days
-    const dailySales = {};
-    orders.forEach(order => {
-      if (new Date(order.orderDate) >= thirtyDaysAgo) {
-        const dateStr = order.orderDate.toISOString().split('T')[0];
-        dailySales[dateStr] = (dailySales[dateStr] || 0) + order.totalAmount;
+    // Group sales by granularity
+    const periodSales = {};
+    deliveredOrders.forEach(order => {
+      let periodKey;
+      const orderDate = new Date(order.orderDate);
+      if (granularity === 'day') {
+        periodKey = format(orderDate, 'yyyy-MM-dd');
+      } else if (granularity === 'week') {
+        periodKey = format(startOfWeek(orderDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      } else if (granularity === 'month') {
+        periodKey = format(startOfMonth(orderDate), 'yyyy-MM');
+      } else if (granularity === 'year') {
+        periodKey = format(startOfYear(orderDate), 'yyyy');
       }
+      periodSales[periodKey] = (periodSales[periodKey] || 0) + order.totalAmount;
     });
 
-    // Get top products
-    const productSales = {};
-    orders.forEach(order => {
-      order.items.forEach(item => {
-        if (!productSales[item.productID]) {
-          productSales[item.productID] = {
-            title: item.title,
-            totalQuantity: 0,
-            totalRevenue: 0
-          };
-        }
-        productSales[item.productID].totalQuantity += item.quantity;
-        productSales[item.productID].totalRevenue += (item.price * item.quantity);
-      });
-    });
-
-    const topProducts = Object.values(productSales)
-      .sort((a, b) => b.totalQuantity - a.totalQuantity)
-      .slice(0, 5);
-
-    // Order status counts
-    const statusCounts = {
-      pending: 0,
-      processing: 0,
-      shipped: 0,
-      delivered: 0
-    };
-
-    orders.forEach(order => {
-      order.items.forEach(item => {
-        statusCounts[item.orderDetailStatus] = 
-          (statusCounts[item.orderDetailStatus] || 0) + 1;
-      });
-    });
-
-    // Format the response
+    // Response
     const response = {
       summary: {
         totalSales,
-        periodSales: recentSales,
-        orderCount: orders.length
+        orderCount: deliveredOrders.length,
       },
-      periodSales: Object.keys(dailySales).map(date => ({
-        date,
-        revenue: dailySales[date]
-      })).sort((a, b) => new Date(a.date) - new Date(b.date)),
-      topProducts,
-      orderStatusCounts: statusCounts
+      periodSales: Object.keys(periodSales)
+        .map(key => ({
+          period: key,
+          revenue: periodSales[key],
+        }))
+        .sort((a, b) => new Date(a.period) - new Date(b.period)),
+      detailedOrders: deliveredOrders.map(order => ({
+        orderID: order.orderID,
+        orderDate: order.orderDate,
+        totalAmount: order.totalAmount,
+        items: order.items.map(item => ({
+          productID: item.productID,
+          title: item.title,
+          quantity: item.quantity,
+          price: item.price,
+        })),
+      })),
     };
 
     res.status(200).json({
       success: true,
-      data: response
+      data: response,
     });
-
   } catch (error) {
-    console.error("Sales report error:", error);
+    console.error('Sales report error:', error);
     res.status(500).json({
       success: false,
-      message: "Internal server error",
-      error: error.message
+      message: 'Internal server error',
+      error: error.message,
     });
   }
 };
+
 
   module.exports = {
     getAllOrdersFromAllUsersForVendor,

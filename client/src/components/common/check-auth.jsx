@@ -14,12 +14,10 @@ function CheckAuth({ isAuthenticated, user, isAuthenticatedVendor,
         return <Navigate to="/admin/dashboard" />;
       } else if(isAuthenticatedVendor && vendor?.status==='active'){
         return <Navigate to="/vendor/dashboard"  />;
-      }else if (user?.role === "user"){
+      }else {
         return <Navigate to="/shop/home" />;
       }
-      else{
-        return <Navigate to="/auth/login" />
-      }
+      
     }
   }
 
@@ -42,12 +40,10 @@ function CheckAuth({ isAuthenticated, user, isAuthenticatedVendor,
       return <Navigate to="/admin/dashboard" />;
   } else if(isAuthenticatedVendor && vendor?.status==='active'){
     return <Navigate to="/vendor/dashboard" />;
-  }else if (user?.role === "user"){
+  }else{
     return <Navigate to="/shop/home" />;
   }
-  else{
-    return <Navigate to="/auth/login" />
-  }
+  
 }
 
   if (isAuthenticatedVendor && vendor?.status==='active') {

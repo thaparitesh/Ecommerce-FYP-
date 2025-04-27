@@ -45,12 +45,23 @@ export const getAllOrdersFromAllUsersForVendor = createAsyncThunk(
   );
 
   export const getVendorSalesReports = createAsyncThunk(
-    "vendorOrder/getVendorSalesReports",
-    async (vendorID) => {
-      const response = await axios.get(
-        `http://localhost:5000/api/vendor/orders/sales-reports/${vendorID}`
-      );
-      return response.data;
+    'vendorOrder/getVendorSalesReports',
+    async ({ vendorID, startDate, endDate, granularity }, { rejectWithValue }) => {
+      try {
+        const response = await axios.get(
+          `http://localhost:5000/api/vendor/orders/sales-reports/${vendorID}`,
+          {
+            params: {
+              startDate: startDate ? startDate.toISOString() : undefined,
+              endDate: endDate ? endDate.toISOString() : undefined,
+              granularity,
+            },
+          }
+        );
+        return response.data;
+      } catch (error) {
+        return rejectWithValue(error.response?.data || error.message);
+      }
     }
   );
 

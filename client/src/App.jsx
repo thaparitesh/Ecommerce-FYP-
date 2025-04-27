@@ -38,6 +38,8 @@ import VendorOrders from './pages/vendor-view/orders'
 import VendorAccount from './pages/vendor-view/vendorAccount'
 import EsewaFailurePage from './pages/shopping-view/esewa-failed-return'
 import EsewaSuccessPage from './pages/shopping-view/esewa-sucess'
+import SalesReportPage from './pages/vendor-view/salesReport'
+import AdminSalesReport from './pages/admin-view/salesReport'
 
 
 function App() {
@@ -108,6 +110,7 @@ function App() {
           <Route path="products/edit/:id" element={<AddProductVendorPage/>}/>
           <Route path="orders" element={<VendorOrders/>}/>
           <Route path="account" element={<VendorAccount/>}/>
+          <Route path="sales-report" element={<SalesReportPage/>}/>
 
 
         </Route>
@@ -123,6 +126,8 @@ function App() {
           <Route path="products/edit/:id" element={<AddProductPage/>}/>
           <Route path="account" element={<AdminAccount/>}/>
           <Route path="vendors" element={<ManageVendor/>}/>
+          <Route path="sales-report" element={<AdminSalesReport/>}/>
+
 
 
         </Route>
