@@ -165,7 +165,7 @@ const createOrder = async (req, res) => {
 
 const verifyEsewaPayment = async (req, res) => {
   const {data} = req.query; 
-  // console.log(data);
+  console.log(data);
   
   if (!data) {
     return res.status(400).json({ 

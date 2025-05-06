@@ -137,7 +137,7 @@ function AdminSalesReport() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              ₹{processedData?.summary.totalSales.toFixed(2) || '0.00'}
+              Rs {processedData?.summary.totalSales.toFixed(2) || '0.00'}
             </div>
             <p className="text-xs text-muted-foreground">Delivered orders</p>
           </CardContent>
@@ -161,7 +161,7 @@ function AdminSalesReport() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
-              ₹{avgOrderValue.toFixed(2)}
+              Rs {avgOrderValue.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">Per delivered order</p>
           </CardContent>
@@ -293,7 +293,7 @@ function AdminSalesReport() {
                 {processedData?.periodSales.map(sale => (
                   <TableRow key={sale.period}>
                     <TableCell>{formatPeriod(sale.period)}</TableCell>
-                    <TableCell>₹{sale.revenue.toFixed(2)}</TableCell>
+                    <TableCell>Rs {sale.revenue.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -344,7 +344,7 @@ function AdminSalesReport() {
                       <TableCell>
                         {order.items.map(item => `${item.quantity}`).join(', ')}
                       </TableCell>
-                      <TableCell>₹{order.totalAmount.toFixed(2)}</TableCell>
+                      <TableCell>Rs {order.totalAmount.toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -408,7 +408,7 @@ function AdminSalesReport() {
                     <TableCell className="font-medium">{product.title}</TableCell>
                     <TableCell>{product.vendorName}</TableCell>
                     <TableCell>{product.totalQuantity}</TableCell>
-                    <TableCell className="text-right">₹{product.totalRevenue.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">Rs {product.totalRevenue.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -446,7 +446,7 @@ function AdminSalesReport() {
                   <TableRow key={vendor.vendorID}>
                     <TableCell className="font-medium">{vendor.businessName}</TableCell>
                     <TableCell>{vendor.orderCount}</TableCell>
-                    <TableCell className="text-right">₹{vendor.totalRevenue.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">Rs {vendor.totalRevenue.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -13,11 +13,11 @@ function VendorCheckAuth({ isAuthenticatedVendor, vendor, isVendor, children }) 
   });
 
   // Handle root path
-  if (location.pathname === "/") {
-    return isAuthenticatedVendor && vendor?.status==='active'
-      ? <Navigate to="/vendor/dashboard"  /> 
-      : <Navigate to="/auth/login"  />;
-  }
+  // if (location.pathname === "/") {
+  //   return isAuthenticatedVendor && vendor?.status==='active'
+  //     ? <Navigate to="/vendor/dashboard"  /> 
+  //     : <Navigate to="/auth/login"  />;
+  // }
 
   // Allow access to vendor auth routes
   if (isVendorAuthRoute) {

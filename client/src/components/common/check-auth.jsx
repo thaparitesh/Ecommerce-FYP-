@@ -1,10 +1,24 @@
 import { Navigate, useLocation } from "react-router-dom";
 
-function CheckAuth({ isAuthenticated, user, isAuthenticatedVendor,
-  vendor, children }) {
+function CheckAuth({ isAuthenticated, user, isAuthenticatedVendor, vendor, children }) {
   const location = useLocation();
 
-  console.log(location.pathname, isAuthenticatedVendor,"isvendor" );
+  console.log("CheckAuth State:", {
+    isAuthenticated,
+    isAuthenticatedVendor,
+    user,
+    vendor,
+    pathname: location.pathname,
+  });
+
+
+  const isPaymentRoute =
+    location.pathname.includes("/payment") ||
+    location.pathname.includes("/order/success");
+
+  if (isPaymentRoute) {
+    return <>{children}</>;
+  }
 
   if (location.pathname === "/") {
     if (!isAuthenticated) {
@@ -12,12 +26,11 @@ function CheckAuth({ isAuthenticated, user, isAuthenticatedVendor,
     } else {
       if (user?.role === "admin") {
         return <Navigate to="/admin/dashboard" />;
-      } else if(isAuthenticatedVendor && vendor?.status==='active'){
-        return <Navigate to="/vendor/dashboard"  />;
-      }else {
+      } else if (isAuthenticatedVendor && vendor?.status === "active") {
+        return <Navigate to="/vendor/dashboard" />;
+      } else {
         return <Navigate to="/shop/home" />;
       }
-      
     }
   }
 
@@ -38,15 +51,14 @@ function CheckAuth({ isAuthenticated, user, isAuthenticatedVendor,
   ) {
     if (user?.role === "admin") {
       return <Navigate to="/admin/dashboard" />;
-  } else if(isAuthenticatedVendor && vendor?.status==='active'){
-    return <Navigate to="/vendor/dashboard" />;
-  }else{
-    return <Navigate to="/shop/home" />;
+    } else if (isAuthenticatedVendor && vendor?.status === "active") {
+      return <Navigate to="/vendor/dashboard" />;
+    } else {
+      return <Navigate to="/shop/home" />;
+    }
   }
-  
-}
 
-  if (isAuthenticatedVendor && vendor?.status==='active') {
+  if (isAuthenticatedVendor && vendor?.status === "active") {
     if (location.pathname.includes("/shop")) {
       return <Navigate to="/vendor/dashboard" />;
     }

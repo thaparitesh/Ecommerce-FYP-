@@ -7,6 +7,7 @@ export const registerFormControls = [
         label : 'User Name',
         placeholder : 'Enter your user name',
         componentType : 'input',
+        required: true,
         type : 'text',
 
     },
@@ -15,6 +16,7 @@ export const registerFormControls = [
         label : 'Email',
         placeholder : 'Enter your email',
         componentType : 'input',
+        required: true,
         type : 'email',
 
     },
@@ -23,6 +25,7 @@ export const registerFormControls = [
         label : 'Phone number',
         placeholder : 'Enter your phone number',
         componentType : 'input',
+        required: true,
         type : 'text',
 
     },
@@ -32,6 +35,7 @@ export const registerFormControls = [
         label : 'Password',
         placeholder : 'Enter your password',
         componentType : 'input',
+        required: true,
         type : 'password',
 
     },
@@ -40,6 +44,7 @@ export const registerFormControls = [
         label : 'Address',
         placeholder : 'Enter your address',
         componentType : 'input',
+        required: true,
         type : 'text',
 
     },
@@ -53,6 +58,7 @@ export const loginFormControls = [
         label : 'Email',
         placeholder : 'Enter your email',
         componentType : 'input',
+        required: true,
         type : 'email',
 
     },
@@ -61,6 +67,7 @@ export const loginFormControls = [
         label : 'Password',
         placeholder : 'Enter your password',
         componentType : 'input',
+        required: true,
         type : 'password',
 
     },

@@ -29,6 +29,11 @@ const User = sequelize.define("User", {
     type: DataTypes.STRING,
     defaultValue: "user",
   },
+  address: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+
 }, {
   timestamps: true,
 });

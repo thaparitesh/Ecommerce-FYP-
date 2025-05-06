@@ -20,20 +20,36 @@ const AuthRegister = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     
-    function onSubmit(event){
-        event.preventDefault()
-        dispatch(registerUser(formData)).then((data)=> {
+    function onSubmit(event) {
+        event.preventDefault();
+    
+        const { userName, email, password } = formData;
+    
+        // Basic validation
+        if (!userName || !email || !password) {
+            toast.error("Please fill up all fields", {
+                style: { background: 'red', color: 'white' },
+            });
+            return;
+        }
+    
+        if (password.length < 6) {
+            toast.error("Password must be at least 6 characters long", {
+                style: { background: 'red', color: 'white' },
+            });
+            return;
+        }
+    
+        dispatch(registerUser(formData)).then((data) => {
             if (data?.payload?.success) {
-                toast.success(data?.payload?.message); 
+                toast.success(data?.payload?.message);
                 navigate('/auth/login');
             } else {
-                toast.error(data?.payload?.message, {
-                    style: { background: 'red', color: 'white' }, 
-                }); 
+                toast.error(data?.payload?.message || "Registration failed", {
+                    style: { background: 'red', color: 'white' },
+                });
             }
-            
         });
-
     }
   return (
     <div className='mx-auto w-full max-w-md space-y-6'>

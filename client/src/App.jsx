@@ -63,8 +63,8 @@ function App() {
     dispatch(vendorAuthCheck());
   },[dispatch])
 
-  if(isLoading) return <Skeleton className="w-[600px] h-[60px] " />
-  ;
+  // if(isLoading) return <Skeleton className="w-[600px] h-[60px] " />
+  // ;
  
   
   return (
